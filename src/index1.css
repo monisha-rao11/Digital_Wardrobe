@@ -1,0 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #5c6ac4;
+  --primary-light: #eef1ff;
+  --accent-color: #9e8cfc;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --gray-100: #f9fafb;
+  --gray-200: #f3f4f6;
+  --gray-300: #e5e7eb;
+  --gray-400: #d1d5db;
+  --gray-500: #9ca3af;
+  --gray-600: #6b7280;
+  --gray-700: #4b5563;
+  --gray-800: #374151;
+  --gray-900: #1f2937;
+}
+
+/* Base Styles */
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--gray-800);
+  background-color: var(--gray-100);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Custom Component Styles */
+.back-button {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+  font-weight: 500;
+}
+
+.back-button:hover {
+  background-color: var(--gray-200);
+}
+
+/* Card Styles */
+.card {
+  @apply bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100;
+}
+
+.card-header {
+  @apply p-5 border-b border-gray-200;
+}
+
+.card-content {
+  @apply p-5;
+}
+
+/* Button Styles */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium;
+}
+
+.btn-primary {
+  @apply bg-indigo-600 text-white hover:bg-indigo-700;
+}
+
+.btn-secondary {
+  @apply bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200;
+}
+
+.btn-outline {
+  @apply border border-gray-300 text-gray-700 hover:bg-gray-100;
+}
+
+/* Badge Styles */
+.badge {
+  @apply px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.badge-blue {
+  @apply bg-indigo-100 text-indigo-800;
+}
+
+.badge-purple {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.badge-green {
+  @apply bg-green-100 text-green-800;
+}
+
+/* Form Styles */
+.form-input {
+  @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none;
+}
+
+.form-label {
+  @apply block mb-2 text-sm font-medium text-gray-700;
+}
+
+.form-select {
+  @apply w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none appearance-none bg-white;
+}
+
+/* Navigation Bar Styles */
+.nav-link {
+  @apply flex flex-col items-center justify-center text-xs font-medium;
+}
+
+.nav-link-active {
+  @apply text-indigo-600;
+}
+
+.nav-link-inactive {
+  @apply text-gray-500 hover:text-gray-700;
+}
+
+/* Empty State Styles */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-8 text-center bg-gray-50 rounded-lg;
+}
+
+.empty-state-icon {
+  @apply text-gray-300 mb-3;
+}
+
+.empty-state-text {
+  @apply text-gray-600 mb-1;
+}
+
+.empty-state-subtext {
+  @apply text-gray-500 text-sm;
+}
+
+/* Custom Shadows */
+.shadow-subtle {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-medium {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+/* Swipe Animation Only */
+@keyframes swipeIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-swipeIn {
+  animation: swipeIn 0.3s ease-out;
+}

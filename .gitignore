@@ -1,0 +1,32 @@
+# Node modules (for JS/TS projects)
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# Mac system files
+.DS_Store
+
+# Log files
+*.log
+
+# Environment variables
+.env
+
+# VSCode settings
+.vscode/
+
+# Cache/build output
+dist/
+build/
+.cache/
+*.zip
+*.tar.gz
+*.rar
+
+# OS generated files
+Thumbs.db
+"firebase-adminsdk.json" 
+firebase-adminsdk.json 
+firebase-adminsdk.json 
