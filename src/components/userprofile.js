@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> 93ee2876e8802566d71bbbb40a01f0473faae625
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { db, auth } from "../firebase.js";
