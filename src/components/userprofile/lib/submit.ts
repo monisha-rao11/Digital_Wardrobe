@@ -1,4 +1,3 @@
-// // utils/submitProfile.ts
 // import { saveProfile, uploadFaceZip } from "../lib/api.ts"; // <-- use uploadFaceZip
 
 // export const submitProfile = async (formData: any): Promise<{
@@ -34,13 +33,35 @@
 //   }
 // };
 
-// utils/submitProfile.ts
-// utils/submitProfile.ts - Debugged version
+
+//utils/submit.ts
 import { saveProfile, uploadFaceZip } from "../lib/api.ts";
 import { db } from "../firebase"; // Make sure this is exported from your firebase.js
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, collection, addDoc } from "firebase/firestore";
+import { v4 as uuidv4 } from 'uuid'; // npm install uuid @types/uuid
 
-export const submitProfile = async (formData: any): Promise<{
+export interface ProfileData {
+  profileID?: string;
+  name: string;
+  age: number;
+  occupation?: string;
+  gender: string;
+  height: number;
+  weight: number;
+  shoulders: number;
+  bust: number; // This will be mapped to chest
+  waist: number;
+  hips: number;
+  skinTone: string;
+  favoriteColors: string[];
+  bodyType?: string;
+  bodyTypeFeatures?: string;
+  faceZip?: File;
+  timestamp?: string;
+  lastUpdated?: string;
+}
+
+export const submitProfile = async (formData: ProfileData): Promise<{
   success: boolean;
   profileId?: string;
   error?: string;
@@ -48,56 +69,77 @@ export const submitProfile = async (formData: any): Promise<{
   try {
     console.log("Starting profile submission with data:", formData);
 
-    // Prepare cleaned profile payload
-    const cleanedProfileData = {
-      name: formData.name,
-      measurements: {
-        height: formData.height,
-        weight: formData.weight,
-      },
+    // Generate profileID if not exists (for new profiles)
+    const profileId = formData.profileID || uuidv4();
+
+    // Prepare complete profile payload for Firestore
+    const profileDataForFirestore = {
+      profileID: profileId,
+      fullName: formData.name,
+      age: Number(formData.age),
+      occupation: formData.occupation || "",
+      gender: formData.gender,
+      height: Number(formData.height), // Height in cm
+      weight: Number(formData.weight), // Weight in kg
+      shoulders: Number(formData.shoulders), // Shoulders in cm
+      chest: Number(formData.bust), // Chest/Bust in cm
+      waist: Number(formData.waist), // Waist in cm
+      hips: Number(formData.hips), // Hips in cm
       skinTone: formData.skinTone,
-      favoriteColors: formData.favoriteColors,
+      colorPreferences: formData.favoriteColors,
       bodyType: formData.bodyType || null,
-      timestamp: new Date().toISOString(),
+      bodyTypeFeatures: formData.bodyTypeFeatures || null,
+      faceDataUploaded: !!formData.faceZip, // Boolean indicating if face data was uploaded
+      createdAt: formData.timestamp || new Date().toISOString(),
+      lastUpdated: formData.lastUpdated || new Date().toISOString(),
     };
 
-    console.log("Cleaned profile data:", cleanedProfileData);
+    console.log("Prepared profile data for Firestore:", profileDataForFirestore);
 
-    // 1. Save profile (server-side or internal logic) and get profileId
-    console.log("Calling saveProfile...");
-    const profileId = await saveProfile(cleanedProfileData);
-    console.log("Profile saved with ID:", profileId);
-
-    // Check if profileId is valid
-    if (!profileId) {
-      throw new Error("Failed to get profileId from saveProfile");
-    }
-
-    // 2. Upload face zip if exists
-    if (formData.faceZip) {
-      console.log("Uploading face zip...");
-      await uploadFaceZip(profileId, formData.faceZip);
-      console.log("Face zip uploaded successfully");
-    }
-
-    // 3. Save profileInfo in Firestore under new collection with profileId as document ID
-    console.log("Saving to Firestore...");
-    
     // Check if db is properly initialized
     if (!db) {
       throw new Error("Firebase db is not initialized");
     }
 
+    // 1. Save to Firestore first (main goal)
+    console.log("Saving profile to Firestore...");
     const profileDocRef = doc(db, "profileInfo", profileId);
-    const firestoreData = {
-      ...cleanedProfileData,
-      profileId,
-    };
+    await setDoc(profileDocRef, profileDataForFirestore);
+    console.log("Successfully saved profile to Firestore with ID:", profileId);
 
-    console.log("Firestore data to save:", firestoreData);
-    
-    await setDoc(profileDocRef, firestoreData);
-    console.log("Successfully saved to Firestore");
+    // 2. Upload face zip if exists
+    if (formData.faceZip) {
+      try {
+        console.log("Uploading face zip...");
+        await uploadFaceZip(profileId, formData.faceZip);
+        console.log("Face zip uploaded successfully");
+        
+        // Update Firestore to indicate face data was successfully uploaded
+        await setDoc(profileDocRef, {
+          ...profileDataForFirestore,
+          faceDataUploaded: true,
+          faceDataUploadedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (uploadError) {
+        console.warn("Face zip upload failed, but profile was saved:", uploadError);
+        // Update Firestore to indicate face upload failed
+        await setDoc(profileDocRef, {
+          ...profileDataForFirestore,
+          faceDataUploaded: false,
+          faceUploadError: uploadError.message
+        }, { merge: true });
+      }
+    }
+
+    // 3. Optional: Save to external API (if needed for other services)
+    try {
+      console.log("Calling external saveProfile API...");
+      await saveProfile(formData);
+      console.log("External profile API called successfully");
+    } catch (apiError) {
+      console.warn("External API call failed, but Firestore save was successful:", apiError);
+      // Don't fail the entire operation if external API fails
+    }
 
     return { success: true, profileId };
   } catch (err: any) {
@@ -107,131 +149,62 @@ export const submitProfile = async (formData: any): Promise<{
   }
 };
 
-// Common issues and solutions:
+// Helper function to validate form data before submission
+export const validateProfileData = (formData: ProfileData): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
 
-/* 
-POTENTIAL ISSUES TO CHECK:
+  // Required field validations
+  if (!formData.name?.trim()) errors.push("Full name is required");
+  if (!formData.age || isNaN(Number(formData.age)) || Number(formData.age) <= 0) errors.push("Valid age is required");
+  if (!formData.gender?.trim()) errors.push("Gender is required");
+  if (!formData.height || isNaN(Number(formData.height)) || Number(formData.height) <= 0) errors.push("Valid height is required");
+  if (!formData.weight || isNaN(Number(formData.weight)) || Number(formData.weight) <= 0) errors.push("Valid weight is required");
+  if (!formData.shoulders || isNaN(Number(formData.shoulders)) || Number(formData.shoulders) <= 0) errors.push("Valid shoulder measurement is required");
+  if (!formData.bust || isNaN(Number(formData.bust)) || Number(formData.bust) <= 0) errors.push("Valid chest/bust measurement is required");
+  if (!formData.waist || isNaN(Number(formData.waist)) || Number(formData.waist) <= 0) errors.push("Valid waist measurement is required");
+  if (!formData.hips || isNaN(Number(formData.hips)) || Number(formData.hips) <= 0) errors.push("Valid hips measurement is required");
+  if (!formData.skinTone?.trim()) errors.push("Skin tone is required");
+  if (!formData.favoriteColors || formData.favoriteColors.length === 0) errors.push("At least one color preference is required");
 
-1. Firebase Configuration:
-   - Make sure your firebase.js file properly exports 'db'
-   - Verify Firebase project configuration
-   - Check if Firestore is enabled in your Firebase console
-
-2. Authentication:
-   - If you have Firestore security rules, make sure they allow writes
-   - Check if user needs to be authenticated
-
-3. saveProfile function:
-   - The saveProfile function might be failing
-   - It might not be returning a valid profileId
-   - Check the implementation in lib/api.ts
-
-4. Network/Permissions:
-   - Check browser console for network errors
-   - Verify Firestore rules allow the operation
-
-5. Data validation:
-   - Some fields might be undefined/null causing issues
-   - Firestore might reject certain data types
-
-DEBUGGING STEPS:
-
-1. Check your firebase.js file:
-*/
-
-// Example firebase.js that should work:
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-
-const firebaseConfig = {
-  // your config
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-
-/*
-2. Check your Firestore security rules in Firebase Console:
-*/
-
-// Example rules for testing (MAKE MORE RESTRICTIVE FOR PRODUCTION):
-// rules_version = '2';
-// service cloud.firestore {
-//   match /databases/{database}/documents {
-//     match /{document=**} {
-//       allow read, write: if true; // TEMPORARY - make restrictive later
-//     }
-//   }
-// }
-
-/*
-3. Test the saveProfile function separately:
-*/
-
-// Test function to debug saveProfile
-export const testSaveProfile = async (testData: any) => {
+// Function to update existing profile
+export const updateProfile = async (profileId: string, formData: ProfileData): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
   try {
-    console.log("Testing saveProfile with:", testData);
-    const result = await saveProfile(testData);
-    console.log("saveProfile returned:", result);
-    return result;
-  } catch (error) {
-    console.error("saveProfile failed:", error);
-    throw error;
-  }
-};
+    console.log("Updating profile with ID:", profileId);
 
-/*
-4. Alternative approach - generate profileId locally if saveProfile fails:
-*/
-
-import { v4 as uuidv4 } from 'uuid'; // npm install uuid
-
-export const submitProfileWithFallback = async (formData: any) => {
-  try {
-    const cleanedProfileData = {
-      name: formData.name,
-      measurements: {
-        height: formData.height,
-        weight: formData.weight,
-      },
+    const updateData = {
+      fullName: formData.name,
+      age: Number(formData.age),
+      occupation: formData.occupation || "",
+      gender: formData.gender,
+      height: Number(formData.height),
+      weight: Number(formData.weight),
+      shoulders: Number(formData.shoulders),
+      chest: Number(formData.bust),
+      waist: Number(formData.waist),
+      hips: Number(formData.hips),
       skinTone: formData.skinTone,
-      favoriteColors: formData.favoriteColors,
+      colorPreferences: formData.favoriteColors,
       bodyType: formData.bodyType || null,
-      timestamp: new Date().toISOString(),
+      bodyTypeFeatures: formData.bodyTypeFeatures || null,
+      lastUpdated: new Date().toISOString(),
     };
 
-    let profileId;
-    
-    try {
-      // Try to save profile first
-      profileId = await saveProfile(cleanedProfileData);
-    } catch (saveError) {
-      console.warn("saveProfile failed, generating local ID:", saveError);
-      // Fallback: generate local ID
-      profileId = uuidv4();
-    }
-
-    // Upload face zip if exists
-    if (formData.faceZip && profileId) {
-      try {
-        await uploadFaceZip(profileId, formData.faceZip);
-      } catch (uploadError) {
-        console.warn("Face zip upload failed:", uploadError);
-        // Continue anyway
-      }
-    }
-
-    // Save to Firestore (this is the main goal)
     const profileDocRef = doc(db, "profileInfo", profileId);
-    await setDoc(profileDocRef, {
-      ...cleanedProfileData,
-      profileId,
-    });
-
-    return { success: true, profileId };
+    await setDoc(profileDocRef, updateData, { merge: true });
+    
+    console.log("Profile updated successfully");
+    return { success: true };
   } catch (err: any) {
-    console.error("Profile submission failed:", err);
+    console.error("Profile update failed:", err);
     return { success: false, error: err.message };
   }
 };
