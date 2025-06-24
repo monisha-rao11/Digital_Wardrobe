@@ -2,7 +2,7 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from '../components/ui/button.tsx';
 import { Card } from "../components/ui/card.tsx";
-import { Check, Download, ArrowLeft, Edit } from "lucide-react";
+import { Check, Download, ArrowLeft, Edit, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 const SummaryPage: React.FC = () => {
@@ -138,18 +138,18 @@ const SummaryPage: React.FC = () => {
                 </div>
               </div>
               
-              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                <Button onClick={() => navigate('/dashboard')} variant="outline" className="focus-ring">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Dashboard
-                </Button>
-                <Button onClick={handleEdit} variant="outline" className="focus-ring">
+              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between">
+                <Button onClick={handleEdit} variant="outline" className="focus-ring sm:order-1">
                   <Edit className="mr-2 h-4 w-4" />
                   Edit Profile
                 </Button>
-                <Button onClick={downloadCSV} className="focus-ring">
+                <Button onClick={downloadCSV} className="focus-ring sm:order-2">
                   <Download className="mr-2 h-4 w-4" />
                   Download Data
+                </Button>
+                <Button onClick={() => navigate('/dashboard')} variant="outline" className="focus-ring sm:order-3">
+                  Dashboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
