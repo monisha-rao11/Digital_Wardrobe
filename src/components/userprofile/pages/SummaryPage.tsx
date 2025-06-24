@@ -41,7 +41,7 @@ const SummaryPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 via-white to-blue-50">
       <div className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="max-w-3xl mx-auto animate-fade-up">
           <Card className="p-8 glass-card border-none">

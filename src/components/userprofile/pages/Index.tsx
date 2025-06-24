@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from '../components/ui/button.tsx';
 import { ArrowRight } from "lucide-react";
@@ -6,34 +5,34 @@ import { Link } from "react-router-dom";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 via-white to-blue-50">
-      <main className="flex-grow flex items-center justify-center">
-        <div className="container px-4 py-16 md:py-24 text-center animate-fade-up">
-          <div className="inline-block mb-3">
-            <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+    <div className="h-screen flex flex-col bg-white-100 overflow-hidden">
+      <main className="flex-grow flex items-center justify-center px-4">
+        <div className="w-full max-w-6xl text-center">
+          <div className="inline-block mb-6">
+            <span className="text-sm font-medium bg-blue-100 text-blue-600 px-3 py-1 rounded-full">
               Smart Mirror
             </span>
           </div>
           
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-medium tracking-tight mb-6">
-            Welcome to <span className="text-primary">Smart Mirror</span>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            Welcome to <span className="text-blue-500">Smart Mirror</span>
           </h1>
           
-          <p className="max-w-2xl mx-auto text-xl text-muted-foreground mb-10">
+          <p className="max-w-2xl mx-auto text-lg text-gray-600 mb-10">
             Let's start by knowing your style. Discover your unique body type and skin tone with our advanced profiling system.
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex items-center justify-center mb-16">
             <Link to="/form">
-              <Button size="lg" className="group">
+              <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors">
                 Start Profiling
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
+                <ArrowRight className="w-4 h-4" />
+              </button>
             </Link>
           </div>
           
-          <div className="mt-20 max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <Feature 
                 title="Body Type Analysis" 
                 description="Our algorithm analyzes your measurements to determine your exact body type category."
@@ -51,9 +50,9 @@ const Index = () => {
         </div>
       </main>
       
-      <footer className="bg-white py-6 border-t">
-        <div className="container text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} Smart Mirror. All rights reserved.</p>
+      <footer className="py-4 flex-shrink-0 border-t border-gray-200">
+        <div className="text-center text-sm text-gray-500">
+          <p>© 2025 Smart Mirror. All rights reserved.</p>
         </div>
       </footer>
     </div>
@@ -61,9 +60,9 @@ const Index = () => {
 };
 
 const Feature = ({ title, description }: { title: string; description: string }) => (
-  <div className="p-6 glass-card rounded-xl text-left">
-    <h3 className="text-lg font-medium mb-2">{title}</h3>
-    <p className="text-muted-foreground text-sm">{description}</p>
+  <div className="bg-white p-6 rounded-lg shadow-sm text-left">
+    <h3 className="text-lg font-semibold text-gray-900 mb-3">{title}</h3>
+    <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
   </div>
 );
 
