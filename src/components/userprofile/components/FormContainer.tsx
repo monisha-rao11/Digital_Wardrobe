@@ -551,11 +551,11 @@ const FormContainer: React.FC = () => {
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isEditing ? "Updating..." : "Submitting..."}
+                      {isEditing ? "Submitting..." : "Submitting..."}
                     </>
                   ) : (
                     <>
-                      {isEditing ? "Update Profile" : "Submit Profile"}
+                      {isEditing ? "Submit Profile" : "Submit Profile"}
                       <Check className="ml-2 h-4 w-4" />
                     </>
                   )}

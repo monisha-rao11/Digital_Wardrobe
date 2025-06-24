@@ -101,7 +101,7 @@ const Dashboard = () => {
           <IconBox
             icon="👤"
             label="Profile"
-            path="/user-profile"
+            path="/profile"
           />
         </div>
       </div>
