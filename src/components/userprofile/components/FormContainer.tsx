@@ -434,7 +434,7 @@ const FormContainer: React.FC = () => {
                   <h3 className="text-lg font-semibold text-blue-800">Profile Found</h3>
                   <div className="flex items-center space-x-1">
                     <Edit3 className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm text-blue-600">Editing Mode</span>
+                    <span className="text-sm text-blue-600">Profile Creation</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -555,7 +555,7 @@ const FormContainer: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      {isEditing ? "Update Profile" : "Submit Profile"}
+                      {isEditing ? "Submit Profile" : "Submit Profile"}
                       <Check className="ml-2 h-4 w-4" />
                     </>
                   )}
