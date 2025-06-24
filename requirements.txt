@@ -1,0 +1,30 @@
+# Core Flask and Web Framework
+Flask==2.3.3
+Flask-CORS==4.0.0
+Flask-SocketIO==5.3.6
+Werkzeug==2.3.7
+
+# Image Processing and Computer Vision
+opencv-python==4.8.1.78
+Pillow==10.0.1
+numpy==1.24.4
+rembg==2.0.50
+
+# Alternative Face Recognition (easier to install)
+deepface==0.0.79
+mediapipe==0.10.5
+
+# Firebase Integration
+firebase-admin==6.2.0
+google-cloud-firestore==2.11.1
+google-cloud-storage==2.10.0
+
+# Environment and Configuration
+python-dotenv==1.0.0
+
+# Web Server
+gunicorn==21.2.0
+
+# Additional utilities
+requests==2.31.0
+python-dateutil==2.8.2
