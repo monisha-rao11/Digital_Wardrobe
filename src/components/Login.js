@@ -147,7 +147,7 @@ const Login = () => {
       <h1 className="text-3xl font-bold text-blue-600 mt-4">DIGITAL WARDROBE</h1>
       <div className="flex items-center gap-3 text-sm text-blue-600 mt-1">
         <span className="h-px bg-blue-400 w-12"></span>
-        <span className="uppercase tracking-widest">SLOLIN IS HERE</span>
+        <span className="uppercase tracking-widest">Personalize your Wardrobe</span>
         <span className="h-px bg-blue-400 w-12"></span>
       </div>
     </div>

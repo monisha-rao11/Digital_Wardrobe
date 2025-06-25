@@ -14,11 +14,17 @@ import { submitProfile, updateProfile, validateProfileData, ProfileData } from "
 import { db, auth } from "../firebase.js";
 import { doc, getDoc } from "firebase/firestore";
 
+// Enhanced ProfileData interface with image support
+interface EnhancedProfileData extends ProfileData {
+  profileImage?: File | string | null; // File for new upload, string for existing URL
+  profileImageUrl?: string; // URL of uploaded image
+}
+
 const FormContainer: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("personal");
-  const [formData, setFormData] = useState<ProfileData>({
+  const [formData, setFormData] = useState<EnhancedProfileData>({
     name: "",
     age: 0,
     occupation: "",
@@ -33,6 +39,8 @@ const FormContainer: React.FC = () => {
     favoriteColors: [],
     bodyType: "",
     bodyTypeFeatures: "",
+    profileImage: null,
+    profileImageUrl: "",
   });
   const [profileID, setProfileID] = useState<string | null>(null);
   const [existingProfileData, setExistingProfileData] = useState<any>(null);
@@ -41,39 +49,72 @@ const FormContainer: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Validation error states
   const [validationError, setValidationError] = useState<string | null>(null);
   const [missingFields, setMissingFields] = useState<string[]>([]);
 
-  // Enhanced function to fetch profile data with better error handling
+  // Image upload validation
+  const validateImageFile = (file: File): { isValid: boolean; error?: string } => {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+    if (file.size > maxSize) {
+      return { isValid: false, error: "Image size must be less than 5MB" };
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      return { isValid: false, error: "Please upload a JPEG, PNG, or WebP image" };
+    }
+
+    return { isValid: true };
+  };
+
+  // Handle image selection
+  const handleImageUpload = (file: File | null) => {
+    if (!file) {
+      setFormData(prev => ({ ...prev, profileImage: null }));
+      return;
+    }
+
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
+      toast.error(validation.error);
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, profileImage: file }));
+    toast.success("Profile image selected successfully");
+  };
+
+  // Enhanced function to fetch profile data with image URL
   const fetchProfileData = async (profileId: string) => {
     if (!profileId) {
       setError("No profile ID provided");
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       // Primary collection check - use profileInfo as the main collection
       let profileDoc = doc(db, "profileInfo", profileId);
       let profileSnapshot = await getDoc(profileDoc);
-      
+
       // Fallback to legacy collection if not found
       if (!profileSnapshot.exists()) {
         console.log(`Profile not found in 'profileInfo', checking 'profiles' collection...`);
         profileDoc = doc(db, "profiles", profileId);
         profileSnapshot = await getDoc(profileDoc);
       }
-      
+
       if (profileSnapshot.exists()) {
         const data = profileSnapshot.data();
         console.log("Profile data fetched:", data);
-        
-        // Standardized mapping with consistent field names
-        const mappedData = {
+
+        // Standardized mapping with consistent field names including image
+        const mappedData: EnhancedProfileData = {
           profileID: data.profileID || profileId,
           name: data.fullName || data.name || "",
           age: Number(data.age) || 0,
@@ -82,26 +123,28 @@ const FormContainer: React.FC = () => {
           height: Number(data.height) || 0,
           weight: Number(data.weight) || 0,
           shoulders: Number(data.shoulders) || 0,
-          bust: Number(data.chest || data.bust) || 0, // Handle both field names
+          bust: Number(data.chest || data.bust) || 0,
           waist: Number(data.waist) || 0,
           hips: Number(data.hips) || 0,
           skinTone: data.skinTone || "",
-          favoriteColors: Array.isArray(data.colorPreferences) ? data.colorPreferences : 
-                         Array.isArray(data.favoriteColors) ? data.favoriteColors : [],
+          favoriteColors: Array.isArray(data.colorPreferences) ? data.colorPreferences :
+            Array.isArray(data.favoriteColors) ? data.favoriteColors : [],
           bodyType: data.bodyType || "",
           bodyTypeFeatures: data.bodyTypeFeatures || "",
+          profileImageUrl: data.profileImageUrl || data.profileImage || "", // Handle both field names
+          profileImage: null, // Reset file input for editing
         };
-        
+
         // Store original name to prevent unauthorized changes
         setOriginalName(mappedData.name);
         setExistingProfileData(data);
         setFormData(mappedData);
         setIsEditing(true);
-        
+
         // Update localStorage with consistent data
         localStorage.setItem("currentProfileID", profileId);
         localStorage.setItem("currentUserName", mappedData.name);
-        
+
         toast.success("Existing profile loaded for editing");
       } else {
         const errorMsg = `Profile with ID "${profileId}" not found in either collection`;
@@ -126,18 +169,18 @@ const FormContainer: React.FC = () => {
       if (location.state?.profileID) {
         return location.state.profileID;
       }
-      
+
       // Priority 2: Location state formData profileID
       if (location.state?.formData?.profileID) {
         return location.state.formData.profileID;
       }
-      
+
       // Priority 3: localStorage profileID
       const storedProfileID = localStorage.getItem("currentProfileID");
       if (storedProfileID) {
         return storedProfileID;
       }
-      
+
       return null;
     };
 
@@ -149,7 +192,7 @@ const FormContainer: React.FC = () => {
     }
 
     const currentProfileID = resolveProfileID();
-    
+
     if (currentProfileID) {
       console.log("Profile ID resolved:", currentProfileID);
       setProfileID(currentProfileID);
@@ -164,7 +207,7 @@ const FormContainer: React.FC = () => {
     }
   }, [location.state, navigate]);
 
-  // Validation and navigation functions remain the same
+  // Validation and navigation functions
   const clearValidationError = () => {
     setValidationError(null);
     setMissingFields([]);
@@ -172,7 +215,7 @@ const FormContainer: React.FC = () => {
 
   const validateCurrentTab = () => {
     clearValidationError();
-    
+
     if (activeTab === "personal") {
       const missing = [];
       if (!formData.name?.trim()) missing.push("Name");
@@ -180,7 +223,7 @@ const FormContainer: React.FC = () => {
       if (!formData.gender?.trim()) missing.push("Gender");
       if (!formData.height || isNaN(Number(formData.height)) || Number(formData.height) <= 0) missing.push("Height");
       if (!formData.weight || isNaN(Number(formData.weight)) || Number(formData.weight) <= 0) missing.push("Weight");
-      
+
       if (missing.length > 0) {
         setValidationError("Please fill in all required personal details");
         setMissingFields(missing);
@@ -192,7 +235,7 @@ const FormContainer: React.FC = () => {
       if (!formData.bust || isNaN(Number(formData.bust)) || Number(formData.bust) <= 0) missing.push("Bust/Chest");
       if (!formData.waist || isNaN(Number(formData.waist)) || Number(formData.waist) <= 0) missing.push("Waist");
       if (!formData.hips || isNaN(Number(formData.hips)) || Number(formData.hips) <= 0) missing.push("Hips");
-      
+
       if (missing.length > 0) {
         setValidationError("Please fill in all required body measurements");
         setMissingFields(missing);
@@ -211,13 +254,13 @@ const FormContainer: React.FC = () => {
         return false;
       }
     }
-    
+
     return true;
   };
 
   const handleNext = () => {
     if (!validateCurrentTab()) return;
-    
+
     if (activeTab === "personal") {
       setActiveTab("facescan");
     } else if (activeTab === "facescan") {
@@ -231,7 +274,7 @@ const FormContainer: React.FC = () => {
 
   const handlePrevious = () => {
     clearValidationError();
-    
+
     if (activeTab === "facescan") {
       setActiveTab("personal");
     } else if (activeTab === "measurements") {
@@ -245,15 +288,15 @@ const FormContainer: React.FC = () => {
 
   const calculateBodyType = () => {
     const { gender, shoulders, bust, waist, hips } = formData;
-    
+
     let bodyType = "";
     let bodyTypeFeatures = "";
-    
+
     if (gender === "female") {
       const waistToHipRatio = waist / hips;
       const bustToHipRatio = bust / hips;
       const waistToBustRatio = waist / bust;
-      
+
       if (waistToHipRatio <= 0.75 && waistToBustRatio <= 0.75 && bustToHipRatio >= 0.9 && bustToHipRatio <= 1.1) {
         bodyType = "Hourglass";
         bodyTypeFeatures = "Bust and hips are nearly the same size with a well-defined waist";
@@ -274,16 +317,16 @@ const FormContainer: React.FC = () => {
       const shoulderToWaistRatio = shoulders / waist;
       const shoulderToHipRatio = shoulders / hips;
       const waistToHipRatio = waist / hips;
-      
+
       if (shoulderToWaistRatio > 1.2) {
         bodyType = "Inverted Triangle (V-Shape)";
         bodyTypeFeatures = "Broad shoulders, narrow waist";
       } else if (shoulderToWaistRatio < 0.95) {
         bodyType = "Triangle (Pear)";
         bodyTypeFeatures = "Narrow shoulders, wider waist and hips";
-      } else if (shoulderToWaistRatio >= 0.95 && shoulderToWaistRatio <= 1.05 && 
-                waistToHipRatio >= 0.95 && waistToHipRatio <= 1.05 &&
-                shoulderToHipRatio >= 0.95 && shoulderToHipRatio <= 1.05) {
+      } else if (shoulderToWaistRatio >= 0.95 && shoulderToWaistRatio <= 1.05 &&
+        waistToHipRatio >= 0.95 && waistToHipRatio <= 1.05 &&
+        shoulderToHipRatio >= 0.95 && shoulderToHipRatio <= 1.05) {
         bodyType = "Rectangle";
         bodyTypeFeatures = "Shoulders, waist, and hips are similar in width";
       } else if (waist > shoulders && waist > hips) {
@@ -294,7 +337,7 @@ const FormContainer: React.FC = () => {
         bodyTypeFeatures = "Balanced proportions, athletic look";
       }
     }
-    
+
     setFormData(prev => ({
       ...prev,
       bodyType,
@@ -309,7 +352,7 @@ const FormContainer: React.FC = () => {
         `You are changing the name from "${originalName}" to "${formData.name}". ` +
         "This will update the name across all systems. Do you want to continue?"
       );
-      
+
       if (!confirmChange) {
         setFormData(prev => ({ ...prev, name: originalName }));
         return false;
@@ -324,7 +367,7 @@ const FormContainer: React.FC = () => {
       return;
     }
 
-    // Final validation
+    // Final validation (excluding image as it's optional)
     const validation = validateProfileData(formData);
     if (!validation.isValid) {
       setValidationError("Please complete all required fields");
@@ -335,60 +378,85 @@ const FormContainer: React.FC = () => {
 
     calculateBodyType();
     setSubmitting(true);
-    
+
     try {
-      const submissionData: ProfileData = {
+      // Prepare submission data with image handling
+      // Prepare submission data with image handling
+      // Prepare submission data with image handling
+      const submissionData = {
         ...formData,
-        ...(profileID && { profileID }),
+        // Ensure profileImage is properly passed for upload processing
+        profileImage: formData.profileImage instanceof File ? formData.profileImage : formData.profileImageUrl,
+        profileID: profileID || undefined,
         timestamp: formData.timestamp || new Date().toISOString(),
         lastUpdated: new Date().toISOString()
       };
 
+      // Add image validation and processing
+      if (formData.profileImage instanceof File) {
+        const imageValidation = validateImageFile(formData.profileImage);
+        if (!imageValidation.isValid) {
+          toast.error(imageValidation.error);
+          setSubmitting(false);
+          return;
+        }
+
+        toast.info("Uploading profile image...");
+      }
+
       let result;
       if (isEditing && profileID) {
+        console.log("Updating profile with data:", submissionData);
         result = await updateProfile(profileID, submissionData);
       } else {
+        console.log("Creating new profile with data:", submissionData);
         result = await submitProfile(submissionData);
       }
 
       if (result.success) {
         const finalProfileId = result.profileId || profileID;
-        
+
         // Update localStorage with final data
         if (finalProfileId) {
           localStorage.setItem("currentProfileID", finalProfileId);
           localStorage.setItem("currentUserName", formData.name);
         }
-        
-        toast.success(isEditing ? "Profile updated successfully!" : "Profile submitted successfully!");
-        
-        navigate('/summary', { 
-          state: { 
+
+        toast.success(
+          isEditing
+            ? "Profile updated successfully!"
+            : "Profile created successfully!"
+        );
+
+        navigate('/summary', {
+          state: {
             formData: {
               ...submissionData,
-              profileID: finalProfileId
+              profileID: finalProfileId,
+              profileImageUrl: result.profileImageUrl || formData.profileImageUrl
             },
             isEditing,
             profileId: finalProfileId
-          } 
+          }
         });
       } else {
         throw new Error(result.error || "Unknown error occurred");
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast.error(`Failed to ${isEditing ? 'update' : 'save'} profile. Please try again.`);
-      
+      const errorMessage = error.message || "Unknown error";
+      toast.error(`Failed to ${isEditing ? 'update' : 'save'} profile: ${errorMessage}`);
+
       // Still navigate to summary with current data as fallback
-      navigate('/summary', { 
-        state: { 
+      navigate('/summary', {
+        state: {
           formData: {
             ...formData,
             ...(profileID && { profileID })
           },
           isEditing,
-          error: error.message
-        } 
+          error: errorMessage
+        }
       });
     } finally {
       setSubmitting(false);
@@ -452,7 +520,12 @@ const FormContainer: React.FC = () => {
                       <span className="ml-1 text-green-800">{existingProfileData.bodyType}</span>
                     </div>
                   )}
-                  
+                  {existingProfileData.profileImageUrl && (
+                    <div>
+                      <span className="font-medium text-purple-700">Profile Image:</span>
+                      <span className="ml-1 text-purple-800">✓ Uploaded</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -478,7 +551,7 @@ const FormContainer: React.FC = () => {
             Color Preferences
           </TabsTrigger>
         </TabsList>
-        
+
         <div className="mt-8">
           <Card className="p-8 glass-card border-none">
             {/* Validation Error Alert */}
@@ -499,25 +572,30 @@ const FormContainer: React.FC = () => {
             )}
 
             <TabsContent value="personal">
-              <PersonalDetails formData={formData} setFormData={setFormData} />
+              <PersonalDetails
+                formData={formData}
+                setFormData={setFormData}
+                onImageUpload={handleImageUpload}
+                existingImageUrl={formData.profileImageUrl}
+              />
             </TabsContent>
-            
+
             <TabsContent value="facescan">
               <FaceScan formData={formData} setFormData={setFormData} />
             </TabsContent>
-            
+
             <TabsContent value="measurements">
               <BodyMeasurements formData={formData} setFormData={setFormData} />
             </TabsContent>
-            
+
             <TabsContent value="skintone">
               <SkinToneSlider formData={formData} setFormData={setFormData} />
             </TabsContent>
-            
+
             <TabsContent value="colors">
               <ColorPreferences formData={formData} setFormData={setFormData} />
             </TabsContent>
-            
+
             <div className="flex justify-between mt-8">
               {activeTab !== "personal" && (
                 <Button
@@ -530,7 +608,7 @@ const FormContainer: React.FC = () => {
                   Back
                 </Button>
               )}
-              
+
               {activeTab !== "colors" ? (
                 <Button
                   type="button"
@@ -551,11 +629,11 @@ const FormContainer: React.FC = () => {
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isEditing ? "Submitting..." : "Submitting..."}
+                      {isEditing ? "Submitting Profile..." : "Creating Profile..."}
                     </>
                   ) : (
                     <>
-                      {isEditing ? "Submit Profile" : "Submit Profile"}
+                      {isEditing ? "Submit Profile" : "Create Profile"}
                       <Check className="ml-2 h-4 w-4" />
                     </>
                   )}
